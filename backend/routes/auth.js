@@ -4,6 +4,7 @@ const User = require("../models/User");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fetchUser = require('../middleware/fetchUser');
 
 const JWT_SECRET = 'iNoteBookSecretKey';
 
@@ -98,6 +99,18 @@ router.post('/login', [
     const authToken = jwt.sign(data, JWT_SECRET);
     res.json({ authToken });
 
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Route 3: Get logged-in User using: POST "/api/auth/getuser". Login required
+router.post('/getuser', fetchUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password");
+    res.json(user);
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Internal Server Error");
