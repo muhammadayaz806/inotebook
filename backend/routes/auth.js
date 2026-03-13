@@ -64,4 +64,44 @@ router.post(
   },
 );
 
+// Route 2: Authenticate a User using: POST "/api/auth/login". No login required
+router.post('/login', [
+  body("email", "Please enter a valid email").isEmail(),
+  body("password", "Password cannot be blank").exists()
+], async (req, res) => {
+  // If there are errors, return Bad request and the errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    // Find the user by email
+    let user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: "Please try to login with correct credentials" });
+    }
+
+    // Compare the provided password with the hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Please try to login with correct credentials" });
+    }
+
+    const data = {
+      user: {
+        id: user.id
+      }
+    };
+    const authToken = jwt.sign(data, JWT_SECRET);
+    res.json({ authToken });
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 module.exports = router;
